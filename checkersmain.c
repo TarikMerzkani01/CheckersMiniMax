@@ -228,6 +228,125 @@ int normalGame(int diff1, int diff2, double* totaltime){           //DONEEEEEEEE
     return 1;
 }
 
+int printedGame(int diff1, int diff2, double* totaltime){           //DONEEEEEEEEEEEEE
+    printf(">>>>>>>>> Board: Red's Turn! >>>>>>>>>\n");
+    printPieces(allboards[rds], allboards[bls], allboards[kngs]);
+    bitboard anycaptures = getRedJumps(allboards[rds], allboards[bls], allboards[kngs]);
+    bitboard movables;
+    actiongroup_t actionpl;
+    if (anycaptures){
+        printf("Captures can be done:\n");
+        while (anycaptures) {
+            printJumps(allboards[rds], allboards[bls], allboards[kngs]);
+            stalltimer = turn;
+            movables = getRedJumpers(allboards[rds], allboards[bls], allboards[kngs]);
+            actionpl = getJumps(movables, anycaptures, allboards[kngs]);
+            if (turn < 7) {
+                makeCapture(move_AI(actionpl, (1), 0));
+            } else {
+                clock_t begin = clock();      // current cpu moment
+                action mymove = move_AI(actionpl, (1), diff1);
+                clock_t end = clock();        // later cpu moment
+                double cpu_time =             // convert into seconds
+                    ((double) (end-begin)) / CLOCKS_PER_SEC;
+                *totaltime += cpu_time;
+                //printf("%lf\n", cpu_time);
+                makeCapture(mymove);
+            }
+            freeActions(actionpl);
+            //makeMove(selectMove(actionpl));
+            //make capture then see if there is another capture
+            if (!(promotePiece())){
+                printf("Piece Promoted!\n");
+            }
+            anycaptures = getRedJumps(allboards[rds], allboards[bls], allboards[kngs]);
+        }
+    } else {    //no captures
+        anycaptures = getRedMoves(allboards[rds], allboards[bls], allboards[kngs]);
+        printMoves(allboards[rds], allboards[bls], allboards[kngs]);
+        if (anycaptures == 0) { //No moves and no captures available
+            printf("\nBlue Wins!!!!\n");
+            return 0;
+        }
+        movables = getRedMovers(allboards[rds], allboards[bls], allboards[kngs]);
+        actionpl = getMoves(movables, anycaptures, allboards[kngs]);
+        if (turn < 7) {
+            makeMove(move_AI(actionpl, (1), 0));
+        } else {
+            clock_t begin = clock();      // current cpu moment
+            action mymove = move_AI(actionpl, (1), diff1);
+            clock_t end = clock();        // later cpu moment
+            double cpu_time =             // convert into seconds
+                    ((double) (end-begin)) / CLOCKS_PER_SEC;
+            *totaltime += cpu_time;
+            //printf("%lf\n", cpu_time);
+            makeMove(mymove);
+        }
+        freeActions(actionpl);
+        if (!(promotePiece())){
+            printf("Piece Promoted!\n");
+        }
+    }
+    turn++;
+    if ((turn-stalltimer) == 50){
+        printf("\nSTALEMATE!\n");
+        stalltimer = -1;
+        return -1;
+    }
+
+    //RANDOM AI is difficulty 0 or lower    
+
+    printf("<<<<<<<<< Board: Blue's Turn! <<<<<<<<<\n");
+    printMoves(allboards[rds], allboards[bls], allboards[kngs]);
+    anycaptures = getBlueJumps(allboards[rds], allboards[bls], allboards[kngs]);
+    if (anycaptures){
+        printf("Captures can be done:\n");
+        while (anycaptures) {
+            printJumps(allboards[rds], allboards[bls], allboards[kngs]);
+            stalltimer = turn;
+            movables = getBlueJumpers(allboards[rds], allboards[bls], allboards[kngs]);
+            actionpl = getJumps(movables, anycaptures, allboards[kngs]);
+            if (turn < 7) {
+                makeCapture(move_AI(actionpl, (0), 0));
+            } else {
+                makeCapture(move_AI(actionpl, (0), diff2));
+            }
+            freeActions(actionpl);
+            //makeMove(selectMove(actionpl));
+            //make capture then see if there is another capture
+            if (!(promotePiece())){
+                printf("Piece Promoted!\n");
+            }
+            anycaptures = getBlueJumps(allboards[rds], allboards[bls], allboards[kngs]);
+        }
+    } else {    //no captures
+        anycaptures = getBlueMoves(allboards[rds], allboards[bls], allboards[kngs]);
+        printMoves(allboards[rds], allboards[bls], allboards[kngs]);
+        if (anycaptures == 0) { //No moves and no captures available
+            printf("\nRed Wins!!!!\n");
+            return 0;
+        }
+        movables = getBlueMovers(allboards[rds], allboards[bls], allboards[kngs]);
+        actionpl = getMoves(movables, anycaptures, allboards[kngs]);
+        if (turn < 7) {
+            makeMove(move_AI(actionpl, (0), 0));
+        } else {
+            makeMove(move_AI(actionpl, (0), diff2));
+        }
+        freeActions(actionpl);
+        if (!(promotePiece())){
+            printf("Piece Promoted!\n");
+        }
+    }
+    turn++;
+    if ((turn-stalltimer) == 50){
+        printf("\nSTALEMATE!\n");
+        stalltimer = -1;
+        return -1;
+    }
+    return 1;
+}
+
 int main(int argc, char *argv[]) {
     srand(time(NULL));   // Initialization, should only be called once.
     int run = 0;
@@ -265,7 +384,7 @@ int main(int argc, char *argv[]) {
             if (userFlag){
                 run = userGame(difficultygiven);
             } else {
-                run = normalGame(9, 9, &totaltime);
+                run = printedGame(15, 15, &totaltime);
             }
             //for now let's try user input
             //move by p1 (reds)==================
@@ -297,12 +416,12 @@ int main(int argc, char *argv[]) {
         
     }
     printf("\n///////////\n\n%d, %d, %d\n\n///////////\n\n", win1, win2, win3);
-    printf("Total Time taken all games: %lf , Time Averaged Per Game = %lf", totaltime, (totaltime)/numgames);
+    printf("Total Time taken all games: %lf , Time Averaged Per Game = %lf\n", totaltime, (totaltime)/numgames);
     return 0;
 }
 
 
-// bitboard randomposred = 0x0004000000440045;
+    // bitboard randomposred = 0x0004000000440045;
     // bitboard randomposblue = 0x004008108210A200;
     // bitboard randomposred = 0x0004000000002804;     //AI POSITION TESTING. DIFFICULTY OF 3 SHOULD WIN
     // bitboard randomposblue = 0x0000020028000000;
